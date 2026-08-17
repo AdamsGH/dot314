@@ -19,11 +19,26 @@ test("getAnycopyRenderHeight always leaves at least one component row", () => {
 	assert.equal(getAnycopyRenderHeight(1), 1);
 });
 
-test("getAnycopyTreeHeight applies the selector height ratio", () => {
+test("getAnycopyTreeHeight provides a balanced constructor height", () => {
 	assert.equal(getAnycopyTreeHeight(38), 24);
 });
 
-test("getAnycopyTreeVisibleLines follows the live render height", () => {
-	assert.equal(getAnycopyTreeVisibleLines(38), 12);
-	assert.equal(getAnycopyTreeVisibleLines(18), 5);
+test("getAnycopyTreeVisibleLines keeps both panes visible across three layouts", () => {
+	assert.equal(getAnycopyTreeVisibleLines(28, "balanced"), 14);
+	assert.equal(getAnycopyTreeVisibleLines(28, "tree"), 24);
+	assert.equal(getAnycopyTreeVisibleLines(28, "preview"), 4);
+	assert.equal(getAnycopyTreeVisibleLines(1, "balanced"), 1);
+});
+
+test("getAnycopyTreeVisibleLines applies custom tree ratios", () => {
+	const ratios = { balanced: 0.6, tree: 0.75, preview: 0.25 };
+	assert.equal(getAnycopyTreeVisibleLines(20, "balanced", ratios), 12);
+	assert.equal(getAnycopyTreeVisibleLines(20, "tree", ratios), 15);
+	assert.equal(getAnycopyTreeVisibleLines(20, "preview", ratios), 5);
+});
+
+test("getAnycopyTreeVisibleLines retains at least one row for each pane", () => {
+	const ratios = { balanced: 0.5, tree: 0.999, preview: 0.001 };
+	assert.equal(getAnycopyTreeVisibleLines(10, "tree", ratios), 9);
+	assert.equal(getAnycopyTreeVisibleLines(10, "preview", ratios), 1);
 });

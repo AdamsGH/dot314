@@ -28,11 +28,18 @@
   "dot314Prepack": {
     "copy": [
       { "from": "../../extensions/anycopy/index.ts", "to": "extensions/anycopy/index.ts" },
+      { "from": "../../extensions/anycopy/clipboard-copy.ts", "to": "extensions/anycopy/clipboard-copy.ts" },
+      { "from": "../../extensions/anycopy/custom-entry.ts", "to": "extensions/anycopy/custom-entry.ts" },
       { "from": "../../extensions/anycopy/enter-navigation.ts", "to": "extensions/anycopy/enter-navigation.ts" },
       { "from": "../../extensions/anycopy/fold-state.ts", "to": "extensions/anycopy/fold-state.ts" },
+      { "from": "../../extensions/anycopy/key-help.ts", "to": "extensions/anycopy/key-help.ts" },
+      { "from": "../../extensions/anycopy/key-help-data.ts", "to": "extensions/anycopy/key-help-data.ts" },
       { "from": "../../extensions/anycopy/preview-window.ts", "to": "extensions/anycopy/preview-window.ts" },
       { "from": "../../extensions/anycopy/timestamps.ts", "to": "extensions/anycopy/timestamps.ts" },
+      { "from": "../../extensions/anycopy/tool-call-copy.ts", "to": "extensions/anycopy/tool-call-copy.ts" },
+      { "from": "../../extensions/anycopy/tool-context-preview.ts", "to": "extensions/anycopy/tool-context-preview.ts" },
       { "from": "../../extensions/anycopy/tree-order.ts", "to": "extensions/anycopy/tree-order.ts" },
+      { "from": "../../extensions/anycopy/ui-state.ts", "to": "extensions/anycopy/ui-state.ts" },
       { "from": "../../extensions/anycopy/viewport-layout.ts", "to": "extensions/anycopy/viewport-layout.ts" },
       { "from": "../../extensions/anycopy/config.json", "to": "extensions/anycopy/config.json" },
       { "from": "../../extensions/anycopy/CHANGELOG.md", "to": "CHANGELOG.md" },
