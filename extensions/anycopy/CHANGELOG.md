@@ -1,5 +1,24 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- **Configurable three-state layout focus** — `Tab` cycles balanced, tree-focused, and preview-focused layouts while retaining both panes; ratios and mode availability are configurable through global Pi settings
+- **Range selection** — `Shift+V` starts an inclusive multi-selection range that extends or shrinks with normal tree movement; copying finishes range mode while keeping the selected nodes
+- **Global shortcut** — optional `anycopy.shortcut` opens the preview/copy browser directly without clearing the editor draft
+- **Selection copy policies** — optional `Enter` modes for output-only or tool-call-inclusive copies, plus four post-copy selection cleanup modes
+- **Tool invocation copy action** — optionally enable a separate configurable action that copies matching calls and results in distinct `toolCall:` / `toolResult:` sections while normal copy remains output-only
+
+### Changed
+- Key hints now wrap across complete rows instead of truncating the available controls
+- Shortcut-opened overlays use `Enter` to copy the focused node instead of showing an unavailable-navigation message
+- Custom-entry timestamps use the host's local time zone instead of forcing UTC
+- Optional compact hints keep one fixed status row; configurable `?` help uses a connected, color-accented, content-sized table with centered footer controls and separately toggled settings and unavailable actions
+- Generic tool-call context can be explicitly enabled for preview without relying on tool names or tool-specific argument schemas
+
+### Fixed
+- Custom session entries now use the same readable labeled content for preview and copy instead of raw JSON or a `[custom: type]` placeholder; timestamps and object lists are formatted for people
+
 ## [0.3.4] - 2026-08-13
 
 ### Fixed
