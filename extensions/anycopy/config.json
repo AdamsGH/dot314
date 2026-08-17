@@ -1,15 +1,28 @@
 {
   "treeFilterMode": "no-tools",
   "persistFoldState": true,
+  "hints": {
+    "mode": "full"
+  },
+  "preview": {
+    "toolCallContext": false
+  },
   "keys": {
     "toggleSelect": "shift+a",
     "copy": "shift+c",
+    "copyWithToolCall": "shift+alt+c",
     "clear": "shift+x",
     "toggleLabelTimestamps": "shift+t",
     "toggleEntryTimestamps": "shift+ctrl+t",
+    "togglePaneFocus": "tab",
+    "toggleRangeSelection": "shift+v",
     "scrollUp": "shift+up",
     "scrollDown": "shift+down",
     "pageUp": "shift+pageup",
-    "pageDown": "shift+pagedown"
+    "pageDown": "shift+pagedown",
+    "toggleToolCallContext": "shift+i",
+    "helpToggleSettings": "s",
+    "helpToggleUnavailable": "u",
+    "help": "?"
   }
 }
