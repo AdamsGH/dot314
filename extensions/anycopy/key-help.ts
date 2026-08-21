@@ -38,13 +38,23 @@ export class AnycopyKeyHelp implements Component {
 		}
 	}
 
+	private truncate(text: string, width: number): string {
+		return truncateToWidth(text, width, this.theme.fg("dim", "..."));
+	}
+
 	private fitCell(text: string, width: number): string {
-		const clipped = truncateToWidth(text, width);
+		const clipped = this.truncate(text, width);
 		return `${clipped}${" ".repeat(Math.max(0, width - visibleWidth(clipped)))}`;
 	}
 
+	private border(text: string): string {
+		return this.theme.fg("dim", text);
+	}
+
 	private renderTableLine(cells: string[], widths: number[]): string {
-		return `│${cells.map((cell, index) => ` ${this.fitCell(cell, widths[index] ?? 1)} `).join("│")}│`;
+		return `${this.border("│")}${cells
+			.map((cell, index) => ` ${this.fitCell(cell, widths[index] ?? 1)} `)
+			.join(this.border("│"))}${this.border("│")}`;
 	}
 
 	private renderStyledRow(row: KeyHelpLayoutRow, widths: number[]): string {
@@ -54,7 +64,7 @@ export class AnycopyKeyHelp implements Component {
 		if (this.showSettings) {
 			cells.push(` ${this.theme.fg("dim", this.fitCell(row.setting ?? "", widths[2] ?? 1))} `);
 		}
-		return `│${cells.join("│")}│`;
+		return `${this.border("│")}${cells.join(this.border("│"))}${this.border("│")}`;
 	}
 
 	render(width: number): string[] {
@@ -71,10 +81,10 @@ export class AnycopyKeyHelp implements Component {
 		const contentWidth = Math.max(1, tableWidth - 4);
 		const fullRule = "─".repeat(Math.max(1, tableWidth - 2));
 		const fullLine = (content: string, centered = false): string => {
-			const clipped = truncateToWidth(content, contentWidth);
+			const clipped = this.truncate(content, contentWidth);
 			const padding = Math.max(0, contentWidth - visibleWidth(clipped));
 			const leftPadding = centered ? Math.floor(padding / 2) : 0;
-			return `│ ${" ".repeat(leftPadding)}${clipped}${" ".repeat(padding - leftPadding)} │`;
+			return `${this.border("│")} ${" ".repeat(leftPadding)}${clipped}${" ".repeat(padding - leftPadding)} ${this.border("│")}`;
 		};
 		const footer = [
 			this.theme.fg("accent", formatConfiguredKey(this.settingsKey)),
@@ -87,18 +97,18 @@ export class AnycopyKeyHelp implements Component {
 			this.theme.fg("dim", " close"),
 		].join("");
 		return [
-			`┌${fullRule}┐`,
+			this.border(`┌${fullRule}┐`),
 			fullLine(this.theme.fg("accent", "anycopy keybindings")),
-			createTableJunction(widths, "├", "┬", "┤"),
+			this.border(createTableJunction(widths, "├", "┬", "┤")),
 			this.renderTableLine(
 				layout.columns.map((column) => this.theme.fg("accent", column.label)),
 				widths,
 			),
-			createTableJunction(widths, "├", "┼", "┤"),
+			this.border(createTableJunction(widths, "├", "┼", "┤")),
 			...layout.rows.map((row) => this.renderStyledRow(row, widths)),
-			createTableJunction(widths, "├", "┴", "┤"),
+			this.border(createTableJunction(widths, "├", "┴", "┤")),
 			fullLine(footer, true),
-			`└${fullRule}┘`,
+			this.border(`└${fullRule}┘`),
 		];
 	}
 
