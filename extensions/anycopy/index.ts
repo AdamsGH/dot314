@@ -7,6 +7,7 @@
  *   Shift+A   - select/unselect focused node for copy
  *   Shift+C   - copy selected nodes (or focused node if none selected)
  *   Shift+Alt+C - optionally copy selected nodes with matching tool calls
+ *   Shift+B   - optionally copy a section/block from the focused node or latest assistant response
  *   Shift+X   - clear selection
  *   Shift+L   - label node
  *   Shift+T   - toggle label timestamps for labeled nodes
@@ -50,6 +51,7 @@ import { attemptClipboardCopy } from "./clipboard-copy.ts";
 import { formatCustomEntryContent, formatCustomEntryPreview } from "./custom-entry.ts";
 import { createAnycopyEnterNavigationLauncher, runAnycopyEnterNavigation } from "./enter-navigation.ts";
 import { AnycopyKeyHelp } from "./key-help.ts";
+import { getLastAssistantText, resolveLatestAssistantCopyShortcut } from "./last-assistant.ts";
 import {
 	formatCompactKey,
 	getKeyHelpPreferredWidth,
@@ -62,6 +64,15 @@ import {
 	type ToolContextPreview,
 } from "./tool-context-preview.ts";
 import { buildNodeOrder } from "./tree-order.ts";
+import {
+	addWholeMessageStructuralTarget,
+	DEFAULT_STRUCTURAL_BLOCK_PICKER_AUTO_CLOSE,
+	extractStructuralBlocks,
+	joinStructuralBlocksForClipboard,
+	type StructuralBlock,
+	type StructuralBlockPickerAutoClose,
+} from "./structural-copy.ts";
+import { pickStructuralBlocks } from "./structural-copy-overlay.ts";
 import {
 	formatToolCallResultForClipboard,
 	getToolName,
@@ -117,6 +128,7 @@ type anycopyKeyConfig = {
 	toggleSelect: string;
 	copy: string;
 	copyWithToolCall: string;
+	copyBlock: string;
 	clear: string;
 	toggleLabelTimestamps: string;
 	toggleEntryTimestamps: string;
@@ -155,6 +167,10 @@ type SelectionRuntimeConfig = {
 
 type CopyConfig = {
 	enableToolCallCopy?: boolean;
+	enableBlockCopy?: boolean;
+	blockPicker?: {
+		autoClose?: StructuralBlockPickerAutoClose;
+	};
 };
 
 type HintsConfig = {
@@ -184,6 +200,8 @@ type anycopyRuntimeConfig = {
 	layoutRatios: PaneLayoutRatios;
 	selection: SelectionRuntimeConfig;
 	toolCallCopyEnabled: boolean;
+	blockCopyEnabled: boolean;
+	blockPickerAutoClose: StructuralBlockPickerAutoClose;
 	initialToolCallContext: boolean;
 	hintMode: HintMode;
 	treeFilterMode: TreeFilterMode;
@@ -204,6 +222,7 @@ const DEFAULT_KEYS: anycopyKeyConfig = {
 	toggleSelect: "shift+a",
 	copy: "shift+c",
 	copyWithToolCall: "shift+alt+c",
+	copyBlock: "shift+b",
 	clear: "shift+x",
 	toggleLabelTimestamps: "shift+t",
 	toggleEntryTimestamps: "shift+ctrl+t",
@@ -270,7 +289,14 @@ const loadConfig = (): anycopyRuntimeConfig => {
 		keys: { ...extensionConfig.keys, ...settingsConfig.keys },
 		layout: { ...extensionConfig.layout, ...settingsConfig.layout },
 		selection: { ...extensionConfig.selection, ...settingsConfig.selection },
-		copy: { ...extensionConfig.copy, ...settingsConfig.copy },
+		copy: {
+			...extensionConfig.copy,
+			...settingsConfig.copy,
+			blockPicker: {
+				...extensionConfig.copy?.blockPicker,
+				...settingsConfig.copy?.blockPicker,
+			},
+		},
 		hints: { ...extensionConfig.hints, ...settingsConfig.hints },
 		preview: { ...extensionConfig.preview, ...settingsConfig.preview },
 	};
@@ -321,6 +347,20 @@ const loadConfig = (): anycopyRuntimeConfig => {
 	};
 
 	const toolCallCopyEnabled = parsed.copy?.enableToolCallCopy === true;
+	const blockCopyEnabled = parsed.copy?.enableBlockCopy === true;
+	const validBlockPickerAutoCloseModes: StructuralBlockPickerAutoClose[] = [
+		"never",
+		"under-three",
+		"always",
+	];
+	const configuredBlockPickerAutoClose = parsed.copy?.blockPicker?.autoClose;
+	const blockPickerAutoClose =
+		typeof configuredBlockPickerAutoClose === "string" &&
+		validBlockPickerAutoCloseModes.includes(
+			configuredBlockPickerAutoClose as StructuralBlockPickerAutoClose,
+		)
+			? (configuredBlockPickerAutoClose as StructuralBlockPickerAutoClose)
+			: DEFAULT_STRUCTURAL_BLOCK_PICKER_AUTO_CLOSE;
 	const initialToolCallContext = parsed.preview?.toolCallContext === true;
 	const hintMode: HintMode = parsed.hints?.mode === "compact" ? "compact" : "full";
 
@@ -331,6 +371,8 @@ const loadConfig = (): anycopyRuntimeConfig => {
 		layoutRatios,
 		selection,
 		toolCallCopyEnabled,
+		blockCopyEnabled,
+		blockPickerAutoClose,
 		initialToolCallContext,
 		hintMode,
 		treeFilterMode,
@@ -426,6 +468,33 @@ const getEntryContent = (entry: SessionEntry): string => {
 
 const getPreviewEntryContent = (entry: SessionEntry): string =>
 	entry.type === "custom" ? formatCustomEntryPreview(entry.customType, entry.data) : getEntryContent(entry);
+
+type StructuralCopyResult =
+	| { type: "empty" }
+	| { type: "cancelled" }
+	| { type: "copied"; selected: StructuralBlock[] }
+	| { type: "failed"; error: string };
+
+const selectAndCopyStructuralBlocks = async (
+	blocks: readonly StructuralBlock[],
+	openPicker: (blocks: readonly StructuralBlock[]) => Promise<StructuralBlock[] | null>,
+): Promise<StructuralCopyResult> => {
+	if (blocks.length === 0) return { type: "empty" };
+
+	try {
+		const selected = await openPicker(blocks);
+		if (!selected || selected.length === 0) return { type: "cancelled" };
+
+		const copyResult = await attemptClipboardCopy(joinStructuralBlocksForClipboard(selected), copyToClipboard);
+		if (!copyResult.ok) return { type: "failed", error: copyResult.error };
+		return { type: "copied", selected };
+	} catch (error) {
+		return {
+			type: "failed",
+			error: error instanceof Error ? error.message : "Failed to open structural copy picker",
+		};
+	}
+};
 
 const replaceTabs = (text: string): string => text.replace(/\t/g, "   ");
 
@@ -579,10 +648,12 @@ class anycopyOverlay implements Focusable {
 		private layoutRatios: PaneLayoutRatios,
 		private selection: SelectionRuntimeConfig,
 		private toolCallCopyEnabled: boolean,
+		private blockCopyEnabled: boolean,
 		private showToolCallContext: boolean,
 		private hintMode: HintMode,
 		private navigationAvailable: boolean,
 		private openHelp: (rows: KeyHelpRow[]) => void,
+		private openBlockPicker: (nodeLabel: string, blocks: readonly StructuralBlock[]) => Promise<StructuralBlock[] | null>,
 		private onExplicitFoldMutation: ((
 			beforeTransientFoldedNodeIds: string[],
 			afterTransientFoldedNodeIds: string[],
@@ -653,6 +724,11 @@ class anycopyOverlay implements Focusable {
 		if (matchesKey(data, this.keys.toggleSelect as MatchesKeyId)) {
 			this.rangeSelection = null;
 			this.toggleSelectedFocusedNode();
+			return;
+		}
+		if (this.blockCopyEnabled && matchesKey(data, this.keys.copyBlock as MatchesKeyId)) {
+			this.rangeSelection = null;
+			void this.copyBlockFromFocusedNode();
 			return;
 		}
 		if (
@@ -832,6 +908,33 @@ class anycopyOverlay implements Focusable {
 		return this.showEntryTimestamps;
 	}
 
+	private async copyBlockFromFocusedNode(): Promise<void> {
+		const focused = this.getFocusedNode();
+		if (!focused) {
+			this.flash("Nothing selected");
+			return;
+		}
+
+		const result = await selectAndCopyStructuralBlocks(
+			extractStructuralBlocks(getEntryContent(focused.entry)),
+			(blocks) => this.openBlockPicker(getEntryRoleLabel(focused.entry), blocks),
+		);
+		if (result.type === "empty") {
+			this.flash("No heading sections or structural blocks in this node");
+			return;
+		}
+		if (result.type === "failed") {
+			this.flash(`Copy failed: ${result.error}`);
+			return;
+		}
+		if (result.type !== "copied") return;
+		this.flash(
+			result.selected.length === 1
+				? `Copied ${result.selected[0]?.kind ?? "structural"} target to clipboard`
+				: `Copied ${result.selected.length} targets to clipboard`,
+		);
+	}
+
 	async copySelectedOrFocusedNode(
 		trigger: CopyTrigger = "shortcut",
 		includeToolCall = false,
@@ -912,6 +1015,13 @@ class anycopyOverlay implements Focusable {
 				setting: "keys.copy",
 			},
 		];
+		rows.push({
+			keys: [this.keys.copyBlock],
+			label: "copy block from focused node",
+			setting: "keys.copyBlock",
+			available: this.blockCopyEnabled,
+			requires: "copy.enableBlockCopy",
+		});
 		rows.push({
 			keys: [this.keys.copyWithToolCall],
 			label: "copy with tool calls",
@@ -1137,6 +1247,8 @@ export default function anycopyExtension(pi: ExtensionAPI) {
 	const layoutRatios = config.layoutRatios;
 	const selection = config.selection;
 	const toolCallCopyEnabled = config.toolCallCopyEnabled;
+	const blockCopyEnabled = config.blockCopyEnabled;
+	const blockPickerAutoClose = config.blockPickerAutoClose;
 	const initialToolCallContext = config.initialToolCallContext;
 	const hintMode = config.hintMode;
 	const treeFilterMode = config.treeFilterMode;
@@ -1165,6 +1277,23 @@ export default function anycopyExtension(pi: ExtensionAPI) {
 				done();
 			};
 			const getRenderHeight = (): number => getAnycopyRenderHeight(tui.terminal?.rows ?? 40);
+			const openBlockPicker = async (
+				nodeLabel: string,
+				blocks: readonly StructuralBlock[],
+			): Promise<StructuralBlock[] | null> => {
+				try {
+					return await pickStructuralBlocks(
+						ctx,
+						nodeLabel,
+						blocks,
+						keys,
+						blockPickerAutoClose,
+					);
+				} finally {
+					overlayHandle?.focus();
+					tui.requestRender();
+				}
+			};
 			const openKeyHelp = (rows: KeyHelpRow[]): void => {
 				const terminalWidth = tui.terminal?.columns ?? 120;
 				const preferredWidth = getKeyHelpPreferredWidth(rows, true, true, visibleWidth);
@@ -1302,10 +1431,12 @@ export default function anycopyExtension(pi: ExtensionAPI) {
 				layoutRatios,
 				selection,
 				toolCallCopyEnabled,
+				blockCopyEnabled,
 				initialToolCallContext,
 				hintMode,
 				navigateTree !== null,
 				openKeyHelp,
+				openBlockPicker,
 				persistFoldState ? handleExplicitFoldMutation : null,
 				getRenderHeight,
 				() => tui.requestRender(),
@@ -1378,12 +1509,51 @@ export default function anycopyExtension(pi: ExtensionAPI) {
 		});
 	};
 
+	const openLatestAssistantStructuralCopy = async (ctx: ExtensionContext): Promise<void> => {
+		if (ctx.mode !== "tui") return;
+
+		const text = getLastAssistantText(ctx.sessionManager.getBranch());
+		if (!text) {
+			ctx.ui.notify("No assistant response to copy", "warning");
+			return;
+		}
+
+		const result = await selectAndCopyStructuralBlocks(
+			addWholeMessageStructuralTarget(text, extractStructuralBlocks(text)),
+			(blocks) => pickStructuralBlocks(ctx, "latest assistant response", blocks, keys, blockPickerAutoClose),
+		);
+		if (result.type === "empty") {
+			ctx.ui.notify("No heading sections or structural blocks in the latest assistant response", "warning");
+			return;
+		}
+		if (result.type === "failed") {
+			ctx.ui.notify(`Copy failed: ${result.error}`, "error");
+			return;
+		}
+		if (result.type !== "copied") return;
+
+		ctx.ui.notify(
+			result.selected.length === 1
+				? `Copied ${result.selected[0]?.kind ?? "structural"} target to clipboard`
+				: `Copied ${result.selected.length} targets to clipboard`,
+			"info",
+		);
+	};
+
 	pi.registerCommand("anycopy", {
 		description: "Browse session tree with preview and copy any node(s) to clipboard",
 		handler: async (_args, ctx: ExtensionCommandContext) => {
 			await openAnycopy(ctx);
 		},
 	});
+
+	const blockCopyShortcut = resolveLatestAssistantCopyShortcut(blockCopyEnabled, keys.copyBlock);
+	if (blockCopyShortcut) {
+		pi.registerShortcut(blockCopyShortcut as Parameters<ExtensionAPI["registerShortcut"]>[0], {
+			description: "Copy a section or structural block from the latest assistant response",
+			handler: openLatestAssistantStructuralCopy,
+		});
+	}
 
 	if (shortcut) {
 		pi.registerShortcut(shortcut as Parameters<ExtensionAPI["registerShortcut"]>[0], {

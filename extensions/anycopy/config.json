@@ -7,10 +7,18 @@
   "preview": {
     "toolCallContext": false
   },
+  "copy": {
+    "enableToolCallCopy": false,
+    "enableBlockCopy": false,
+    "blockPicker": {
+      "autoClose": "under-three"
+    }
+  },
   "keys": {
     "toggleSelect": "shift+a",
     "copy": "shift+c",
     "copyWithToolCall": "shift+alt+c",
+    "copyBlock": "shift+b",
     "clear": "shift+x",
     "toggleLabelTimestamps": "shift+t",
     "toggleEntryTimestamps": "shift+ctrl+t",

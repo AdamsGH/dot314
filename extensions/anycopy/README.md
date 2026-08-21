@@ -18,6 +18,7 @@ Defaults (customizable under `anycopy.keys` in global `settings.json`):
 | `Shift+A` | Select/unselect focused node for copy |
 | `Shift+C` | Copy selected nodes, or the focused node if nothing is selected |
 | `Shift+Alt+C` | Copy with matching tool calls when the optional feature is enabled |
+| `Shift+B` | Open structural copy for the focused `/anycopy` node, or the latest assistant response outside `/anycopy` |
 | `Shift+X` | Clear selection |
 | `Shift+L` | Label node (native tree behavior) |
 | `Shift+T` | Toggle label timestamps for labeled nodes |
@@ -42,6 +43,17 @@ Notes:
 - Escaping the summary chooser reopens `/anycopy` with focus restored to the node you tried to select
 - Cancelling the custom summarization editor returns to the summary chooser
 - `Shift+C` finishes active range selection after copying while keeping the selected nodes marked
+- Optional structural copy uses one searchable picker for Markdown heading sections, fenced code, tables, lists, and blockquotes
+- When `anycopy.copy.enableBlockCopy` is `true`, the configured `anycopy.keys.copyBlock` shortcut opens that picker directly for the latest non-empty assistant response; inside `/anycopy`, the same key uses the focused tree node
+- Heading rows form a collapsed hierarchy by Markdown level; `Right` expands a section, `Left` collapses it or selects its parent, and filtering temporarily reveals matching ancestry without changing explicit expansion state
+- `Enter` on a heading copies the complete raw Markdown section, including its heading, prose, nested headings, and structural content; selecting a heading suppresses overlapping nested selections in the copied result
+- Inside the picker, the configured selection key (`Shift+A` by default) marks or unmarks sections and blocks, while `Enter` copies marked targets in document order or the focused target when nothing is marked; plain spaces remain available in filter queries
+- Selector rows use structural summaries instead of raw first-line snippets: headings show aggregate block/line counts, code shows language/lines, tables show dimensions, lists show item/line counts, and quotes show line counts
+- `anycopy.copy.blockPicker.autoClose` controls whether marking immediately copies and closes: `never`, `under-three` (the default, when the source node has one or two copy targets), or `always`
+- The picker uses 90% of available terminal width, derives its viewport from terminal height, scrolls preview with the configured `Shift+Up`/`Shift+Down` and `Shift+PageUp`/`Shift+PageDown` bindings, and switches between stacked and split layouts by available width
+- In split layout, the configured pane-focus key (`Tab` by default) expands preview to roughly 80% width and dims the selector; press it again to restore selector focus
+- While preview is focused on a non-heading block, Pi's configured `app.editor.external` binding (`Ctrl+G` by default) closes the picker before opening the complete focused block in the configured external editor, then recreates the picker with its filter, focus, expansion, marks, and edited content restored
+- Structural copy preserves raw Markdown for heading sections, tables, lists, and quotes, while fenced code copies without its outer fence; multiple non-overlapping targets are separated by one blank line
 - If no nodes are selected, `Shift+C` copies the focused node
 - Single-node copies use just that node's content; role prefixes like `user:` or `assistant:` are only added when copying 2 or more nodes
 - When copying multiple selected nodes, they are auto-sorted chronologically by position in the session tree, not by selection order
@@ -80,7 +92,11 @@ Add an `anycopy` section to the normal global Pi settings file at `~/.pi/agent/s
       "clearAfterCopy": "never"
     },
     "copy": {
-      "enableToolCallCopy": false
+      "enableToolCallCopy": false,
+      "enableBlockCopy": false,
+      "blockPicker": {
+        "autoClose": "under-three"
+      }
     },
     "hints": {
       "mode": "full"
@@ -92,6 +108,7 @@ Add an `anycopy` section to the normal global Pi settings file at `~/.pi/agent/s
       "toggleSelect": "shift+a",
       "copy": "shift+c",
       "copyWithToolCall": "shift+alt+c",
+      "copyBlock": "shift+b",
       "clear": "shift+x",
       "toggleLabelTimestamps": "shift+t",
       "toggleEntryTimestamps": "shift+ctrl+t",
@@ -118,6 +135,8 @@ Add an `anycopy` section to the normal global Pi settings file at `~/.pi/agent/s
 - `anycopy.selection.enterCopyMode`: controls `Enter` while nodes are marked: `off` navigates normally, `output` copies only results, and `output-with-tool-call` copies matching calls with their results
 - `anycopy.selection.clearAfterCopy`: selection cleanup policy: `never`, `always`, `multi-select`, or `multi-select-enter`
 - `anycopy.copy.enableToolCallCopy`: when `true`, adds the configurable `copyWithToolCall` action and hint; copied pairs use separate `toolCall:` and `toolResult:` sections, while normal copies remain output-only
+- `anycopy.copy.enableBlockCopy`: when `true`, registers `keys.copyBlock` globally for the latest assistant response and enables the same action for the focused `/anycopy` node; the global picker includes an `Entire message` target, and valid `json` fences expose expandable nested values; when `false`, no global block-copy shortcut is registered
+- `anycopy.copy.blockPicker.autoClose`: `never` keeps the picker open while marking, `under-three` closes after marking when the unfiltered copy-target count is below three, and `always` closes after every new mark
 - `anycopy.hints.mode`: `full` shows wrapped inline bindings; `compact` reserves one row for stable status and the configured help key
 - `anycopy.preview.toolCallContext`: opt-in initial state for generic tool-call context in preview; it is `false` by default and can be toggled at runtime with `keys.toggleToolCallContext`
 - `anycopy.keys`: effective bindings for anycopy-owned actions; the help popup reads these merged values instead of hardcoded defaults

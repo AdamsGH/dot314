@@ -8,15 +8,32 @@
 - **Global shortcut** — optional `anycopy.shortcut` opens the preview/copy browser directly without clearing the editor draft
 - **Selection copy policies** — optional `Enter` modes for output-only or tool-call-inclusive copies, plus four post-copy selection cleanup modes
 - **Tool invocation copy action** — optionally enable a separate configurable action that copies matching calls and results in distinct `toolCall:` / `toolResult:` sections while normal copy remains output-only
+- **Focused-node block copy**: optionally open a searchable picker for code blocks, Markdown tables, lists, and blockquotes in the focused tree node
+- **Multi-block selection**: mark several structural blocks and copy them together in document order, with configurable `never`, `under-three`, and `always` auto-close policies
+- **Expandable heading sections**: browse nested Markdown headings as collapsible groups and copy a complete section, including prose and nested content
+- **Latest-response structural shortcut**: when block copy is enabled, the configured `keys.copyBlock` binding opens the structural picker directly for the latest non-empty assistant response; the same key still targets the focused node inside `/anycopy`
+- **Whole-message copy target**: the latest-response picker includes the complete assistant message as its first target without adding a synthetic row to focused-node tree copy
+- **Expandable JSON values**: valid `json` fences expose nested objects, arrays, and scalar values as independently copyable tree targets
 
 ### Changed
 - Key hints now wrap across complete rows instead of truncating the available controls
 - Shortcut-opened overlays use `Enter` to copy the focused node instead of showing an unavailable-navigation message
 - Custom-entry timestamps use the host's local time zone instead of forcing UTC
 - Optional compact hints keep one fixed status row; configurable `?` help uses a connected, color-accented, content-sized table with centered footer controls and separately toggled settings and unavailable actions
+- The block picker uses 90% of available terminal width, renders selector and preview side by side when both panes fit, falls back to a stacked narrow layout, and keeps line count in the shared header
+- Block-picker height is selection-independent, uses 70% of short terminals while reserving host context, and is capped at 28 rows on tall terminals
+- Block-picker rows now use heading titles and kind-specific structural metadata instead of generic per-kind ordinals followed by raw first-line snippets
+- Filtering temporarily reveals matching heading ancestry without mutating explicit expansion state, and selecting a heading suppresses overlapping nested targets in clipboard output
+- Key-help and block-picker frames use an explicit muted border color so nested panes remain visually distinct from content
+- Block preview uses the configured Shift-scroll and paging bindings; the configured pane-focus key expands split preview to roughly 80% width and dims the selector
+- Preview focus exposes Pi's configured `app.editor.external` action, opening the complete selected block in the configured external editor and reading successful edits back into the picker
+- External editing now closes the picker before spawning the editor and recreates it afterward, preserving semantic selection, heading expansion, and filter state without stopping and restarting Pi's TUI
 - Generic tool-call context can be explicitly enabled for preview without relying on tool names or tool-specific argument schemas
 
 ### Fixed
+- Returning from the block picker's external editor no longer waits on a manual alternate-screen redraw path
+- Generated truncation ellipses in key-help and block-picker panes use the muted frame color instead of inheriting selected-row or syntax-highlight colors
+- Block preview overflow indicators are embedded in the viewport borders without truncation artifacts or border-color bleed; they appear only where content is hidden and do not consume content rows
 - Custom session entries now use the same readable labeled content for preview and copy instead of raw JSON or a `[custom: type]` placeholder; timestamps and object lists are formatted for people
 
 ## [0.3.4] - 2026-08-13
