@@ -3,7 +3,7 @@ export type CopyTrigger = "shortcut" | "enter";
 export type EnterCopyMode = "off" | "output" | "output-with-tool-call";
 export type EnterAction = "navigate" | "copy-selection" | "copy-focused";
 export type HintMode = "full" | "compact";
-export type ClearSelectionAfterCopy = "never" | "always" | "multi-select" | "multi-select-enter";
+export type ClearSelectionAfterCopy = "never" | "always" | "always-enter" | "multi-select" | "multi-select-enter";
 
 export function resolveEnterAction(
 	mode: EnterCopyMode,
@@ -26,6 +26,7 @@ export function shouldClearSelectionAfterCopy(
 	copiedCount: number,
 ): boolean {
 	if (mode === "always") return copiedCount > 0;
+	if (mode === "always-enter") return trigger === "enter" && copiedCount > 0;
 	if (mode === "multi-select") return copiedCount > 1;
 	return mode === "multi-select-enter" && trigger === "enter" && copiedCount > 1;
 }

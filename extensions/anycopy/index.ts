@@ -326,6 +326,7 @@ const loadConfig = (): anycopyRuntimeConfig => {
 	const validClearAfterCopyModes: ClearSelectionAfterCopy[] = [
 		"never",
 		"always",
+		"always-enter",
 		"multi-select",
 		"multi-select-enter",
 	];

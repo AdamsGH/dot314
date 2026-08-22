@@ -26,9 +26,13 @@ test("togglePaneFocus cycles through balanced, tree-only, and preview-focused la
 test("shouldClearSelectionAfterCopy supports every configured policy", () => {
 	assert.equal(shouldClearSelectionAfterCopy("never", "enter", 3), false);
 	assert.equal(shouldClearSelectionAfterCopy("always", "shortcut", 1), true);
+	assert.equal(shouldClearSelectionAfterCopy("always-enter", "shortcut", 2), false);
+	assert.equal(shouldClearSelectionAfterCopy("always-enter", "enter", 0), false);
+	assert.equal(shouldClearSelectionAfterCopy("always-enter", "enter", 1), true);
 	assert.equal(shouldClearSelectionAfterCopy("multi-select", "shortcut", 1), false);
 	assert.equal(shouldClearSelectionAfterCopy("multi-select", "shortcut", 2), true);
 	assert.equal(shouldClearSelectionAfterCopy("multi-select-enter", "shortcut", 2), false);
+	assert.equal(shouldClearSelectionAfterCopy("multi-select-enter", "enter", 1), false);
 	assert.equal(shouldClearSelectionAfterCopy("multi-select-enter", "enter", 2), true);
 });
 
