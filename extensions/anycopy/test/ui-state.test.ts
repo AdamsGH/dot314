@@ -4,7 +4,7 @@ import test from "node:test";
 import {
 	buildStatusTextLines,
 	resolveEnterAction,
-	selectInclusiveRange,
+	applyInclusiveRangeSelection,
 	shouldClearSelectionAfterCopy,
 	togglePaneFocus,
 	wrapHintSegments,
@@ -67,28 +67,36 @@ test("wrapHintSegments uses the terminal width measurer supplied by the renderer
 	assert.deepEqual(wrapHintSegments(["one", "two"], 12, doubleWidth), ["one", "two"]);
 });
 
-test("selectInclusiveRange adds the forward range to the baseline selection", () => {
+test("applyInclusiveRangeSelection adds the forward range to the baseline selection", () => {
 	assert.deepEqual(
-		[...selectInclusiveRange(new Set(["outside"]), ["a", "b", "c", "d"], "b", "d")],
+		[...applyInclusiveRangeSelection(new Set(["outside"]), ["a", "b", "c", "d"], "b", "d")],
 		["outside", "b", "c", "d"],
 	);
 });
 
-test("selectInclusiveRange supports shrinking and reversing around the anchor", () => {
+test("applyInclusiveRangeSelection supports shrinking and reversing around the anchor", () => {
 	const baseline = new Set(["outside"]);
-	assert.deepEqual([...selectInclusiveRange(baseline, ["a", "b", "c", "d"], "c", "a")], [
+	assert.deepEqual([...applyInclusiveRangeSelection(baseline, ["a", "b", "c", "d"], "c", "a")], [
 		"outside",
 		"a",
 		"b",
 		"c",
 	]);
-	assert.deepEqual([...selectInclusiveRange(baseline, ["a", "b", "c", "d"], "c", "b")], [
+	assert.deepEqual([...applyInclusiveRangeSelection(baseline, ["a", "b", "c", "d"], "c", "b")], [
 		"outside",
 		"b",
 		"c",
 	]);
 });
 
-test("selectInclusiveRange leaves the baseline unchanged when the range is not visible", () => {
-	assert.deepEqual([...selectInclusiveRange(new Set(["saved"]), ["a", "b"], "hidden", "b")], ["saved"]);
+test("applyInclusiveRangeSelection removes the range when its anchor was already selected", () => {
+	const baseline = new Set(["outside", "a", "b", "c", "d"]);
+	assert.deepEqual(
+		[...applyInclusiveRangeSelection(baseline, ["a", "b", "c", "d"], "b", "d")],
+		["outside", "a"],
+	);
+});
+
+test("applyInclusiveRangeSelection leaves the baseline unchanged when the range is not visible", () => {
+	assert.deepEqual([...applyInclusiveRangeSelection(new Set(["saved"]), ["a", "b"], "hidden", "b")], ["saved"]);
 });

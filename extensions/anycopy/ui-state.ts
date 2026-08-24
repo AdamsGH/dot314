@@ -68,7 +68,7 @@ export function wrapHintSegments(
 	return lines;
 }
 
-export function selectInclusiveRange(
+export function applyInclusiveRangeSelection(
 	baselineIds: ReadonlySet<string>,
 	orderedVisibleIds: readonly string[],
 	anchorId: string,
@@ -79,11 +79,14 @@ export function selectInclusiveRange(
 	const focusedIndex = orderedVisibleIds.indexOf(focusedId);
 	if (anchorIndex < 0 || focusedIndex < 0) return selected;
 
+	const shouldSelect = !baselineIds.has(anchorId);
 	const start = Math.min(anchorIndex, focusedIndex);
 	const end = Math.max(anchorIndex, focusedIndex);
 	for (let index = start; index <= end; index += 1) {
 		const id = orderedVisibleIds[index];
-		if (id) selected.add(id);
+		if (!id) continue;
+		if (shouldSelect) selected.add(id);
+		else selected.delete(id);
 	}
 	return selected;
 }

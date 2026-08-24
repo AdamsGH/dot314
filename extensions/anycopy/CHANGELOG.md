@@ -4,7 +4,7 @@
 
 ### Added
 - **Configurable three-state layout focus** — `Tab` cycles balanced, tree-focused, and preview-focused layouts while retaining both panes; ratios and mode availability are configurable through global Pi settings
-- **Range selection** — `Shift+V` starts an inclusive multi-selection range that extends or shrinks with normal tree movement; copying finishes range mode while keeping the selected nodes
+- **Range selection.** `Shift+V` starts an inclusive range that extends or shrinks with normal tree movement. Starting on an unselected node selects the range, while starting on a selected node deselects it. Copying finishes range mode while preserving its result
 - **Global shortcut** — optional `anycopy.shortcut` opens the preview/copy browser directly without clearing the editor draft
 - **Selection copy policies** — optional `Enter` modes for output-only or tool-call-inclusive copies, plus four post-copy selection cleanup modes
 - **Tool invocation copy action** — optionally enable a separate configurable action that copies matching calls and results in distinct `toolCall:` / `toolResult:` sections while normal copy remains output-only

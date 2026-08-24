@@ -86,7 +86,7 @@ import {
 	type PaneFocus,
 	buildStatusTextLines,
 	resolveEnterAction,
-	selectInclusiveRange,
+	applyInclusiveRangeSelection,
 	shouldClearSelectionAfterCopy,
 	togglePaneFocus,
 } from "./ui-state.ts";
@@ -815,7 +815,7 @@ class anycopyOverlay implements Focusable {
 		} else if (this.rangeSelection) {
 			const focusedId = this.getFocusedNode()?.entry.id;
 			if (focusedId && focusedId !== beforeFocusedId) {
-				this.selectedNodeIds = selectInclusiveRange(
+				this.selectedNodeIds = applyInclusiveRangeSelection(
 					this.rangeSelection.baselineIds,
 					afterVisibleIds,
 					this.rangeSelection.anchorId,
@@ -863,9 +863,17 @@ class anycopyOverlay implements Focusable {
 		const focused = this.getFocusedNode();
 		if (!focused) return;
 		const anchorId = focused.entry.id;
-		this.rangeSelection = { anchorId, baselineIds: new Set(this.selectedNodeIds) };
-		this.selectedNodeIds.add(anchorId);
-		this.flash("Range selection active — move to extend");
+		const baselineIds = new Set(this.selectedNodeIds);
+		this.rangeSelection = { anchorId, baselineIds };
+		this.selectedNodeIds = applyInclusiveRangeSelection(
+			baselineIds,
+			this.getVisibleFilteredNodeIds(),
+			anchorId,
+			anchorId,
+		);
+		this.flash(baselineIds.has(anchorId)
+			? "Range deselection active, move to extend"
+			: "Range selection active, move to extend");
 	}
 
 	private flash(message: string): void {

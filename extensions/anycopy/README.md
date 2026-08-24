@@ -24,7 +24,7 @@ Defaults (customizable under `anycopy.keys` in global `settings.json`):
 | `Shift+T` | Toggle label timestamps for labeled nodes |
 | `Shift+Ctrl+T` | Toggle node creation timestamps |
 | `Tab` | Cycle balanced, tree-focused, and preview-focused layouts when layout modes are enabled |
-| `Shift+V` | Start or finish range selection; move through the tree to extend the range |
+| `Shift+V` | Start or finish range selection or deselection. Move through the tree to extend the range |
 | `Shift+Up` / `Shift+Down` | Scroll node preview by line |
 | `Shift+PageUp` / `Shift+PageDown` | Page through node preview |
 | `Shift+I` | Toggle generic parent tool-call context in preview |
@@ -35,7 +35,7 @@ Notes:
 - Full key hints wrap across complete rows; `anycopy.hints.mode: "compact"` replaces them with one fixed status/help row so selection and copy feedback do not resize the panes
 - `?` opens compact key help; inside it, `S` toggles exact `anycopy.*` setting paths and `U` toggles unavailable actions with their dependency
 - `Tab` cycles through balanced, tree-focused, and preview-focused layouts; both panes remain visible according to configurable ratios
-- While range selection is active, normal tree movement extends or shrinks an inclusive range from the original node; existing selections outside the range are preserved
+- Range mode selects when its anchor is unselected and deselects when its anchor is already selected. Normal tree movement extends or shrinks the inclusive range while preserving selections outside it
 - Changing the visible tree through search, filtering, or folding finishes the active range while keeping nodes already selected
 - `Enter` navigates the focused node in command-opened overlays; when shortcut-opened navigation is unavailable, it copies the focused node without requiring selection; `anycopy.selection.enterCopyMode` can copy marked results, with or without matching tool calls
 - After `Enter`, `/anycopy` offers the same summary choices as `/tree`: `No summary`, `Summarize`, and `Summarize with custom prompt`
