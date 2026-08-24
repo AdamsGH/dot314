@@ -267,6 +267,10 @@ test("nested JSON targets retain JSON syntax highlighting metadata", () => {
 	assert.ok(nested);
 	assert.equal(getStructuralBlockPreviewLanguage(root), "json");
 	assert.equal(getStructuralBlockPreviewLanguage(nested), "json");
+	assert.equal(
+		getStructuralBlockPreviewLanguage({ kind: "code", content: "echo ready", language: "shell" }),
+		"bash",
+	);
 	assert.equal(getStructuralBlockPreviewLanguage({ kind: "quote", content: "> plain" }), undefined);
 });
 

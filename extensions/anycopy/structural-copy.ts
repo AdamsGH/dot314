@@ -433,8 +433,12 @@ export const resolveStructuralBlockSelectionIndexes = (
 export const joinStructuralBlocksForClipboard = (blocks: readonly StructuralBlock[]): string =>
 	blocks.map((block) => block.content).join("\n\n");
 
-export const getStructuralBlockPreviewLanguage = (block: StructuralBlock): string | undefined =>
-	block.kind === "json" ? "json" : block.kind === "code" ? block.language ?? "text" : undefined;
+export const getStructuralBlockPreviewLanguage = (block: StructuralBlock): string | undefined => {
+	if (block.kind === "json") return "json";
+	if (block.kind !== "code") return undefined;
+	const language = block.language ?? "text";
+	return language.toLowerCase() === "shell" ? "bash" : language;
+};
 
 export const countStructuralBlocksByKind = (
 	blocks: readonly StructuralBlock[],
