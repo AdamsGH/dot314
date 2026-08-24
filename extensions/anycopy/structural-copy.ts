@@ -1,4 +1,13 @@
-export type StructuralBlockKind = "message" | "heading" | "code" | "json" | "table" | "list" | "quote";
+export type StructuralBlockKind =
+	| "message"
+	| "heading"
+	| "code"
+	| "json"
+	| "table"
+	| "ordered-list"
+	| "unordered-list"
+	| "ordered-list-item"
+	| "quote";
 export type StructuralBlockPickerAutoClose = "never" | "under-three" | "always";
 
 export const DEFAULT_STRUCTURAL_BLOCK_PICKER_AUTO_CLOSE: StructuralBlockPickerAutoClose =
@@ -46,8 +55,44 @@ const isTableSeparator = (line: string): boolean => {
 	return cells.length > 0 && cells.every((cell) => /^:?-+:?$/.test(cell));
 };
 
-const isListItemStart = (line: string): boolean => /^\s*(?:[-*+]\s+|\d+[.)]\s+)/.test(line);
-const isListContinuation = (line: string): boolean => /^\s+\S/.test(line) || isListItemStart(line);
+type MarkdownListMarker = {
+	indent: number;
+	ordered: boolean;
+};
+
+const matchListItemStart = (line: string): MarkdownListMarker | null => {
+	const match = /^(\s*)(?:(\d+[.)])|([-*+]))\s+(.*)$/.exec(line);
+	if (!match) return null;
+	return {
+		indent: match[1]?.length ?? 0,
+		ordered: Boolean(match[2]),
+	};
+};
+
+const unwrapBlockquoteLine = (line: string): string => line.replace(/^\s{0,3}> ?/, "");
+
+const isListContinuation = (
+	line: string,
+	rootIndent: number,
+	ordered: boolean,
+): boolean => {
+	const marker = matchListItemStart(line);
+	if (marker) {
+		return marker.indent > rootIndent ||
+			(marker.indent === rootIndent && marker.ordered === ordered);
+	}
+	const indentation = /^(\s+)/.exec(line)?.[1]?.length ?? 0;
+	return indentation > rootIndent && /^\s+\S/.test(line);
+};
+
+const countTopLevelListItems = (lines: readonly string[]): number => {
+	const root = matchListItemStart(lines[0] ?? "");
+	if (!root) return 0;
+	return lines.filter((line) => {
+		const marker = matchListItemStart(line);
+		return marker?.indent === root.indent && marker.ordered === root.ordered;
+	}).length;
+};
 
 const matchHeading = (line: string): { level: number; title: string } | null => {
 	const match = /^\s{0,3}(#{1,6})\s+(.+?)\s*#*\s*$/.exec(line);
@@ -239,29 +284,63 @@ export const extractStructuralBlocks = (markdown: string): StructuralBlock[] => 
 			}
 		}
 
-		if (isListItemStart(line)) {
+		const listRoot = matchListItemStart(line);
+		if (listRoot) {
 			const start = index;
+			const topLevelItemStarts = [start];
 			index++;
 			while (index < lines.length) {
 				const current = lines[index] ?? "";
-				if (isListContinuation(current)) {
+				const marker = matchListItemStart(current);
+				if (isListContinuation(current, listRoot.indent, listRoot.ordered)) {
+					if (
+						marker?.indent === listRoot.indent &&
+						marker.ordered === listRoot.ordered
+					) {
+						topLevelItemStarts.push(index);
+					}
 					index++;
 					continue;
 				}
-				if (current.trim() === "" && isListContinuation(lines[index + 1] ?? "")) {
+				if (
+					current.trim() === "" &&
+					isListContinuation(lines[index + 1] ?? "", listRoot.indent, listRoot.ordered)
+				) {
 					index++;
 					continue;
 				}
 				break;
 			}
-			blocks.push(
-				withLocation(
-					{ kind: "list", content: lines.slice(start, index).join("\n").trimEnd(), targetId: `list:${start}` },
-					headings,
-					start,
-					index,
-				),
+
+			const kind = listRoot.ordered ? "ordered-list" : "unordered-list";
+			const targetId = `${kind}:${start}`;
+			const listBlock = withLocation(
+				{ kind, content: lines.slice(start, index).join("\n").trimEnd(), targetId },
+				headings,
+				start,
+				index,
 			);
+			blocks.push(listBlock);
+
+			if (listRoot.ordered) {
+				for (let itemIndex = 0; itemIndex < topLevelItemStarts.length; itemIndex++) {
+					const itemStart = topLevelItemStarts[itemIndex] as number;
+					const itemEnd = topLevelItemStarts[itemIndex + 1] ?? index;
+					const itemBlock: StructuralBlock = {
+						kind: "ordered-list-item",
+						content: lines.slice(itemStart, itemEnd).join("\n").trimEnd(),
+						targetId: `ordered-list-item:${itemStart}`,
+						parentTargetId: targetId,
+						title: lines[itemStart]?.trim() ?? `Item ${itemIndex + 1}`,
+					};
+					blocks.push(headings.length === 0 ? itemBlock : {
+						...itemBlock,
+						parentHeadingId: listBlock.parentHeadingId,
+						startLine: itemStart,
+						endLine: itemEnd,
+					});
+				}
+			}
 			continue;
 		}
 
@@ -271,7 +350,11 @@ export const extractStructuralBlocks = (markdown: string): StructuralBlock[] => 
 			while (index < lines.length && /^\s{0,3}>/.test(lines[index] ?? "")) index++;
 			blocks.push(
 				withLocation(
-					{ kind: "quote", content: lines.slice(start, index).join("\n"), targetId: `quote:${start}` },
+					{
+						kind: "quote",
+						content: lines.slice(start, index).map(unwrapBlockquoteLine).join("\n"),
+						targetId: `quote:${start}`,
+					},
 					headings,
 					start,
 					index,
@@ -362,7 +445,9 @@ export const countStructuralBlocksByKind = (
 		code: 0,
 		json: 0,
 		table: 0,
-		list: 0,
+		"ordered-list": 0,
+		"unordered-list": 0,
+		"ordered-list-item": 0,
 		quote: 0,
 	};
 	for (const block of blocks) counts[block.kind]++;
@@ -387,9 +472,13 @@ const KIND_LABELS: Record<StructuralBlockKind, string> = {
 	code: "Code",
 	json: "JSON value",
 	table: "Table",
-	list: "List",
+	"ordered-list": "Ordered list",
+	"unordered-list": "Unordered list",
+	"ordered-list-item": "List item",
 	quote: "Quote",
 };
+
+export const getStructuralBlockKindLabel = (kind: StructuralBlockKind): string => KIND_LABELS[kind];
 
 const lineCountText = (count: number): string => `${count} ${count === 1 ? "line" : "lines"}`;
 const itemCountText = (count: number): string => `${count} ${count === 1 ? "item" : "items"}`;
@@ -417,7 +506,7 @@ export const summarizeStructuralBlock = (
 			return lineCountText(lines.length);
 		case "heading": {
 			const nestedBlocks = blocks.filter(
-				(candidate) => candidate.kind !== "heading" &&
+				(candidate) => candidate.kind !== "heading" && candidate.kind !== "ordered-list-item" &&
 					block.startLine !== undefined && candidate.startLine !== undefined && candidate.endLine !== undefined &&
 					block.startLine <= candidate.startLine && (block.endLine ?? -1) >= candidate.endLine,
 			).length;
@@ -441,8 +530,11 @@ export const summarizeStructuralBlock = (
 			const dataRows = Math.max(0, rows.length - 2);
 			return `${dataRows}×${columns} table`;
 		}
-		case "list":
-			return `${itemCountText(lines.filter(isListItemStart).length)} · ${lineCountText(lines.length)}`;
+		case "ordered-list":
+		case "unordered-list":
+			return `${itemCountText(countTopLevelListItems(lines))} · ${lineCountText(lines.length)}`;
+		case "ordered-list-item":
+			return lineCountText(lines.length);
 		case "quote":
 			return lineCountText(lines.length);
 	}
@@ -464,6 +556,8 @@ export const buildStructuralBlockSelectItems = (
 				? block.title ?? "value"
 			: block.kind === "code"
 				? `${KIND_LABELS.code} [${block.language ?? "text"}]`
+			: block.kind === "ordered-list-item"
+				? block.title ?? KIND_LABELS[block.kind]
 				: KIND_LABELS[block.kind];
 		const description = summarizeStructuralBlock(block, blocks);
 		const searchableContent = block.kind === "heading" || block.kind === "message" ? "" : block.content;

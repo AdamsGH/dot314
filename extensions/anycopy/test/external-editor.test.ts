@@ -18,7 +18,7 @@ test("editor suffix follows block kind and fenced language", () => {
 	assert.equal(getStructuralBlockEditorSuffix(block("", "typescript")), "ts");
 	assert.equal(getStructuralBlockEditorSuffix(block("", "python")), "py");
 	assert.equal(getStructuralBlockEditorSuffix(block("", "custom-lang")), "customlang");
-	assert.equal(getStructuralBlockEditorSuffix({ kind: "list", content: "- one" }), "md");
+	assert.equal(getStructuralBlockEditorSuffix({ kind: "unordered-list", content: "- one" }), "md");
 });
 
 test("external editor reads successful edits after its owning overlay has closed", async () => {

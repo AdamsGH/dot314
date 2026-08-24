@@ -1,5 +1,5 @@
 export const STRUCTURAL_COPY_OVERLAY_HEIGHT_RATIO = 0.7;
-export const STRUCTURAL_COPY_OVERLAY_MAX_HEIGHT = 28;
+export const STRUCTURAL_COPY_OVERLAY_MAX_HEIGHT = `${STRUCTURAL_COPY_OVERLAY_HEIGHT_RATIO * 100}%` as const;
 export const STRUCTURAL_COPY_HOST_RESERVED_ROWS = 4;
 export const STRUCTURAL_COPY_OVERLAY_WIDTH_RATIO = 0.9;
 export const STRUCTURAL_COPY_SPLIT_SELECTOR_MIN = 40;
@@ -77,7 +77,6 @@ export const getStructuralCopyViewportHeight = (terminalRows: number): number =>
 	Math.max(
 		1,
 		Math.min(
-			STRUCTURAL_COPY_OVERLAY_MAX_HEIGHT,
 			Math.floor(terminalRows * STRUCTURAL_COPY_OVERLAY_HEIGHT_RATIO),
 			Math.floor(terminalRows) - STRUCTURAL_COPY_HOST_RESERVED_ROWS,
 		),

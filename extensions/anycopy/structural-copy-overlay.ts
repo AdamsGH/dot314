@@ -36,6 +36,7 @@ import {
 } from "./structural-copy-layout.ts";
 import {
 	buildStructuralBlockSelectItems,
+	getStructuralBlockKindLabel,
 	getStructuralBlockPreviewLanguage,
 	getVisibleStructuralBlockItems,
 	resolveStructuralBlockSelectionIndexes,
@@ -437,7 +438,7 @@ export class AnycopyBlockPicker implements Component {
 		const visibleRows = this.getVisibleRows(height);
 		const lines = visibleRows.map(({ row, selected }) => {
 			const marker = `${selected ? "→" : " "}${this.markedSourceIndexes.has(row.sourceIndex) ? "*" : " "} `;
-			const type = `${marker}${row.block.kind === "heading" ? "Section" : `${row.block.kind[0]?.toUpperCase()}${row.block.kind.slice(1)}`}`;
+			const type = `${marker}${getStructuralBlockKindLabel(row.block.kind)}`;
 			const action = this.formatRowLabel(row);
 			return `${this.border("│")} ${this.theme.fg(selected ? "accent" : "dim", this.fitCell(type, typeWidth))} ${this.border("│")} ${this.theme.fg(
 				selected ? "text" : "muted",

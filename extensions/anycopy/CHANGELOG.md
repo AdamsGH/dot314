@@ -14,6 +14,7 @@
 - **Latest-response structural shortcut**: when block copy is enabled, the configured `keys.copyBlock` binding opens the structural picker directly for the latest non-empty assistant response; the same key still targets the focused node inside `/anycopy`
 - **Whole-message copy target**: the latest-response picker includes the complete assistant message as its first target without adding a synthetic row to focused-node tree copy
 - **Expandable JSON values**: valid `json` fences expose nested objects, arrays, and scalar values as independently copyable tree targets
+- **Selective ordered-list copy**: ordered and unordered lists are separate targets, and ordered lists expose each top-level item with its nested content as an individually copyable child
 
 ### Changed
 - Key hints now wrap across complete rows instead of truncating the available controls
@@ -21,9 +22,10 @@
 - Custom-entry timestamps use the host's local time zone instead of forcing UTC
 - Optional compact hints keep one fixed status row; configurable `?` help uses a connected, color-accented, content-sized table with centered footer controls and separately toggled settings and unavailable actions
 - The block picker uses 90% of available terminal width, renders selector and preview side by side when both panes fit, falls back to a stacked narrow layout, and keeps line count in the shared header
-- Block-picker height is selection-independent, uses 70% of short terminals while reserving host context, and is capped at 28 rows on tall terminals
+- Block-picker height is selection-independent and uses up to 70% of terminal height while reserving host context, without a fixed row ceiling
 - Block-picker rows now use heading titles and kind-specific structural metadata instead of generic per-kind ordinals followed by raw first-line snippets
 - Filtering temporarily reveals matching heading ancestry without mutating explicit expansion state, and selecting a heading suppresses overlapping nested targets in clipboard output
+- Blockquote targets now render their inner Markdown in preview and copy it with one quote level removed, preserving fenced code and nested quote levels
 - Key-help and block-picker frames use an explicit muted border color so nested panes remain visually distinct from content
 - Block preview uses the configured Shift-scroll and paging bindings; the configured pane-focus key expands split preview to roughly 80% width and dims the selector
 - Preview focus exposes Pi's configured `app.editor.external` action, opening the complete selected block in the configured external editor and reading successful edits back into the picker

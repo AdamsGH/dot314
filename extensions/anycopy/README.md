@@ -43,17 +43,18 @@ Notes:
 - Escaping the summary chooser reopens `/anycopy` with focus restored to the node you tried to select
 - Cancelling the custom summarization editor returns to the summary chooser
 - `Shift+C` finishes active range selection after copying while keeping the selected nodes marked
-- Optional structural copy uses one searchable picker for Markdown heading sections, fenced code, tables, lists, and blockquotes
+- Optional structural copy uses one searchable picker for Markdown heading sections, fenced code, tables, ordered and unordered lists, and blockquotes
+- Ordered lists expand into individually copyable top-level items. Each item keeps its nested bullets and continuation lines, while unordered lists remain one copy target
 - When `anycopy.copy.enableBlockCopy` is `true`, the configured `anycopy.keys.copyBlock` shortcut opens that picker directly for the latest non-empty assistant response; inside `/anycopy`, the same key uses the focused tree node
 - Heading rows form a collapsed hierarchy by Markdown level; `Right` expands a section, `Left` collapses it or selects its parent, and filtering temporarily reveals matching ancestry without changing explicit expansion state
 - `Enter` on a heading copies the complete raw Markdown section, including its heading, prose, nested headings, and structural content; selecting a heading suppresses overlapping nested selections in the copied result
 - Inside the picker, the configured selection key (`Shift+A` by default) marks or unmarks sections and blocks, while `Enter` copies marked targets in document order or the focused target when nothing is marked; plain spaces remain available in filter queries
-- Selector rows use structural summaries instead of raw first-line snippets: headings show aggregate block/line counts, code shows language/lines, tables show dimensions, lists show item/line counts, and quotes show line counts
+- Selector rows use structural summaries instead of raw first-line snippets: headings show aggregate block/line counts, code shows language/lines, tables show dimensions, ordered and unordered lists show distinct labels and top-level item counts, and quotes show line counts
 - `anycopy.copy.blockPicker.autoClose` controls whether marking immediately copies and closes: `never`, `under-three` (the default, when the source node has one or two copy targets), or `always`
-- The picker uses 90% of available terminal width, derives its viewport from terminal height, scrolls preview with the configured `Shift+Up`/`Shift+Down` and `Shift+PageUp`/`Shift+PageDown` bindings, and switches between stacked and split layouts by available width
+- The picker uses 90% of available terminal width and up to 70% of terminal height, with no fixed row ceiling. It scrolls preview with the configured `Shift+Up`/`Shift+Down` and `Shift+PageUp`/`Shift+PageDown` bindings, and switches between stacked and split layouts by available width
 - In split layout, the configured pane-focus key (`Tab` by default) expands preview to roughly 80% width and dims the selector; press it again to restore selector focus
 - While preview is focused on a non-heading block, Pi's configured `app.editor.external` binding (`Ctrl+G` by default) closes the picker before opening the complete focused block in the configured external editor, then recreates the picker with its filter, focus, expansion, marks, and edited content restored
-- Structural copy preserves raw Markdown for heading sections, tables, lists, and quotes, while fenced code copies without its outer fence; multiple non-overlapping targets are separated by one blank line
+- Structural copy preserves raw Markdown for heading sections, tables, lists, and list items. Blockquotes copy as clean Markdown with one quote level removed, so their inline formatting and fenced code still render in preview without `>` prefixes in the clipboard. Standalone fenced code copies without its outer fence. Multiple non-overlapping targets are separated by one blank line
 - If no nodes are selected, `Shift+C` copies the focused node
 - Single-node copies use just that node's content; role prefixes like `user:` or `assistant:` are only added when copying 2 or more nodes
 - When copying multiple selected nodes, they are auto-sorted chronologically by position in the session tree, not by selection order

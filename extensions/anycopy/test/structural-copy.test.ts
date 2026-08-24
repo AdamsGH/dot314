@@ -29,10 +29,14 @@ test("extracts tables only when a separator row is present", () => {
 	assert.deepEqual(extractStructuralBlocks("| A | B |\n| 1 | 2 |"), []);
 });
 
-test("extracts loose and nested lists as one block", () => {
+test("extracts loose and nested unordered lists as one block", () => {
 	const markdown = "- first\n  - nested\n\n- second\n\nprose";
 	assert.deepEqual(extractStructuralBlocks(markdown), [
-		{ kind: "list", content: "- first\n  - nested\n\n- second", targetId: "list:0" },
+		{
+			kind: "unordered-list",
+			content: "- first\n  - nested\n\n- second",
+			targetId: "unordered-list:0",
+		},
 	]);
 });
 
@@ -40,7 +44,100 @@ test("extracts consecutive blockquotes and preserves mixed document order", () =
 	const markdown = "> first\n> second\n\n```\ncode\n```\n\n1. item";
 	assert.deepEqual(
 		extractStructuralBlocks(markdown).map((block) => block.kind),
-		["quote", "code", "list"],
+		["quote", "code", "ordered-list", "ordered-list-item"],
+	);
+});
+
+test("copies blockquotes as clean Markdown while preserving their rendered content", () => {
+	const markdown = [
+		"> Native Control D DoH works with `RouterOS 7.24`.",
+		">",
+		"> During uptime I logged one transient error:",
+		">",
+		"> ```text",
+		"> DoH server connection error",
+		"> ```",
+		">",
+		"> > Nested warning",
+	].join("\n");
+	const [quote] = extractStructuralBlocks(markdown);
+
+	assert.deepEqual(quote, {
+		kind: "quote",
+		content: [
+			"Native Control D DoH works with `RouterOS 7.24`.",
+			"",
+			"During uptime I logged one transient error:",
+			"",
+			"```text",
+			"DoH server connection error",
+			"```",
+			"",
+			"> Nested warning",
+		].join("\n"),
+		targetId: "quote:0",
+	});
+	assert.equal(getStructuralBlockPreviewLanguage(quote), undefined);
+	assert.equal(joinStructuralBlocksForClipboard([quote]), quote?.content);
+});
+
+test("separates list styles and exposes ordered top-level items for selective copy", () => {
+	const markdown = [
+		"1. First finding",
+		"    - first detail",
+		"    - wrapped detail",
+		"      continuation",
+		"",
+		"2. Second finding",
+		"    - second detail",
+		"",
+		"- unrelated bullet",
+		"- another bullet",
+	].join("\n");
+	const blocks = extractStructuralBlocks(markdown);
+
+	assert.deepEqual(blocks.map((block) => block.kind), [
+		"ordered-list",
+		"ordered-list-item",
+		"ordered-list-item",
+		"unordered-list",
+	]);
+	assert.equal(blocks[1]?.content, [
+		"1. First finding",
+		"    - first detail",
+		"    - wrapped detail",
+		"      continuation",
+	].join("\n"));
+	assert.equal(blocks[2]?.content, "2. Second finding\n    - second detail");
+	assert.equal(blocks[1]?.parentTargetId, blocks[0]?.targetId);
+	assert.equal(blocks[2]?.parentTargetId, blocks[0]?.targetId);
+	assert.equal(blocks[3]?.content, "- unrelated bullet\n- another bullet");
+
+	const items = buildStructuralBlockSelectItems(blocks);
+	assert.deepEqual(items.map((item) => item.label), [
+		"[ordered-list] Ordered list",
+		"[ordered-list-item] 1. First finding",
+		"[ordered-list-item] 2. Second finding",
+		"[unordered-list] Unordered list",
+	]);
+	assert.deepEqual(items.map((item) => item.description), [
+		"2 items · 7 lines",
+		"4 lines",
+		"2 lines",
+		"2 items · 2 lines",
+	]);
+	assert.deepEqual(
+		getVisibleStructuralBlockItems(items, new Set(), "").map((item) => item.targetIndex),
+		[0, 3],
+	);
+	assert.deepEqual(
+		getVisibleStructuralBlockItems(items, new Set([blocks[0]?.targetId ?? ""]), "").map((item) => item.targetIndex),
+		[0, 1, 2, 3],
+	);
+	assert.deepEqual(resolveStructuralBlockSelectionIndexes(new Set([0, 1]), 1, blocks), [0]);
+	assert.equal(
+		joinStructuralBlocksForClipboard([blocks[1], blocks[2]].filter((block) => block !== undefined)),
+		"1. First finding\n    - first detail\n    - wrapped detail\n      continuation\n\n2. Second finding\n    - second detail",
 	);
 });
 
@@ -68,12 +165,19 @@ test("headings form nested copyable sections with complete source ranges", () =>
 		"Tail prose.",
 	].join("\n");
 	const blocks = extractStructuralBlocks(markdown);
-	assert.deepEqual(blocks.map((block) => block.kind), ["heading", "list", "heading", "quote", "heading"]);
+	assert.deepEqual(blocks.map((block) => block.kind), ["heading", "unordered-list", "heading", "quote", "heading"]);
 	assert.equal(blocks[0]?.content, markdown.split("\n").slice(0, 6).join("\n"));
 	assert.equal(blocks[2]?.content, "## Beta\n> nested quote");
 	assert.equal(blocks[2]?.parentHeadingId, blocks[0]?.headingId);
 	assert.equal(blocks[3]?.parentHeadingId, blocks[2]?.headingId);
 	assert.equal(blocks[4]?.content, "# Gamma\nTail prose.");
+});
+
+test("ordered list items do not inflate containing section block counts", () => {
+	const blocks = extractStructuralBlocks("# Findings\n1. One\n2. Two");
+	const items = buildStructuralBlockSelectItems(blocks);
+	assert.deepEqual(items.map((item) => item.depth), [0, 1, 2, 2]);
+	assert.equal(items[0]?.description, "1 block · 3 lines");
 });
 
 test("heading visibility follows explicit expansion while filters reveal matching ancestry", () => {
@@ -88,7 +192,7 @@ test("heading visibility follows explicit expansion while filters reveal matchin
 	]);
 	assert.deepEqual(ids(getVisibleStructuralBlockItems(items, new Set(["heading:0"]), "")), [
 		"[heading] Alpha",
-		"[list] List",
+		"[unordered-list] Unordered list",
 		"[heading] Beta",
 		"[heading] Gamma",
 	]);
@@ -196,7 +300,7 @@ test("block picker auto-close policy uses the unfiltered candidate count", () =>
 
 test("multiple structural blocks are joined without changing single-block content", () => {
 	const one = { kind: "quote" as const, content: "> one" };
-	const two = { kind: "list" as const, content: "- two" };
+	const two = { kind: "unordered-list" as const, content: "- two" };
 	assert.equal(joinStructuralBlocksForClipboard([one]), "> one");
 	assert.equal(joinStructuralBlocksForClipboard([one, two]), "> one\n\n- two");
 });

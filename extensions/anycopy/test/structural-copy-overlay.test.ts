@@ -52,11 +52,12 @@ test("preview focus reallocates a wide split to approximately 20/80", () => {
 	assert.equal(isStructuralCopyPreviewActionAvailable("stacked", "preview"), false);
 });
 
-test("viewport height is stable, bounded, and leaves host context visible", () => {
-	assert.equal(STRUCTURAL_COPY_OVERLAY_MAX_HEIGHT, 28);
+test("viewport height scales with the terminal and leaves host context visible", () => {
+	assert.equal(STRUCTURAL_COPY_OVERLAY_MAX_HEIGHT, "70%");
 	assert.equal(STRUCTURAL_COPY_HOST_RESERVED_ROWS, 4);
 	assert.equal(getStructuralCopyViewportHeight(40), 28);
-	assert.equal(getStructuralCopyViewportHeight(80), 28);
+	assert.equal(getStructuralCopyViewportHeight(80), 56);
+	assert.equal(getStructuralCopyViewportHeight(120), 84);
 	assert.equal(getStructuralCopyViewportHeight(24), 16);
 	assert.equal(getStructuralCopyViewportHeight(8), 4);
 	assert.equal(getStructuralCopySplitBodyHeight(28), 22);
