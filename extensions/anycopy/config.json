@@ -7,6 +7,9 @@
   "preview": {
     "toolCallContext": false
   },
+  "selection": {
+    "rangeMode": "toggle"
+  },
   "copy": {
     "enableToolCallCopy": false,
     "enableBlockCopy": false,

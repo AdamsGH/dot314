@@ -84,6 +84,7 @@ import {
 	type EnterCopyMode,
 	type HintMode,
 	type PaneFocus,
+	type RangeSelectionMode,
 	buildStatusTextLines,
 	resolveEnterAction,
 	applyInclusiveRangeSelection,
@@ -158,11 +159,13 @@ type SelectionConfig = {
 	/** Compatibility with the initial pane-controls configuration. */
 	enterCopiesSelection?: boolean;
 	clearAfterCopy?: ClearSelectionAfterCopy;
+	rangeMode?: RangeSelectionMode;
 };
 
 type SelectionRuntimeConfig = {
 	enterCopyMode: EnterCopyMode;
 	clearAfterCopy: ClearSelectionAfterCopy;
+	rangeMode: RangeSelectionMode;
 };
 
 type CopyConfig = {
@@ -250,6 +253,7 @@ const DEFAULT_LAYOUT_RATIOS: PaneLayoutRatios = {
 const DEFAULT_SELECTION_CONFIG: SelectionRuntimeConfig = {
 	enterCopyMode: "off",
 	clearAfterCopy: "never",
+	rangeMode: "toggle",
 };
 
 const getExtensionDir = (): string => {
@@ -331,6 +335,7 @@ const loadConfig = (): anycopyRuntimeConfig => {
 		"multi-select-enter",
 	];
 	const validEnterCopyModes: EnterCopyMode[] = ["off", "output", "output-with-tool-call"];
+	const validRangeSelectionModes: RangeSelectionMode[] = ["toggle", "select"];
 	const configuredEnterCopyMode = parsed.selection?.enterCopyMode;
 	const selection: SelectionRuntimeConfig = {
 		enterCopyMode:
@@ -345,6 +350,11 @@ const loadConfig = (): anycopyRuntimeConfig => {
 			validClearAfterCopyModes.includes(parsed.selection.clearAfterCopy as ClearSelectionAfterCopy)
 				? (parsed.selection.clearAfterCopy as ClearSelectionAfterCopy)
 				: DEFAULT_SELECTION_CONFIG.clearAfterCopy,
+		rangeMode:
+			typeof parsed.selection?.rangeMode === "string" &&
+			validRangeSelectionModes.includes(parsed.selection.rangeMode as RangeSelectionMode)
+				? (parsed.selection.rangeMode as RangeSelectionMode)
+				: DEFAULT_SELECTION_CONFIG.rangeMode,
 	};
 
 	const toolCallCopyEnabled = parsed.copy?.enableToolCallCopy === true;
@@ -820,6 +830,7 @@ class anycopyOverlay implements Focusable {
 					afterVisibleIds,
 					this.rangeSelection.anchorId,
 					focusedId,
+					this.selection.rangeMode,
 				);
 			}
 		}
@@ -870,9 +881,10 @@ class anycopyOverlay implements Focusable {
 			this.getVisibleFilteredNodeIds(),
 			anchorId,
 			anchorId,
+			this.selection.rangeMode,
 		);
-		this.flash(baselineIds.has(anchorId)
-			? "Range deselection active, move to extend"
+		this.flash(this.selection.rangeMode === "toggle"
+			? "Range toggle active, move to extend"
 			: "Range selection active, move to extend");
 	}
 

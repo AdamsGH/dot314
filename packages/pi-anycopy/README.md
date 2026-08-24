@@ -67,7 +67,7 @@ Notes:
 - Full key hints wrap across complete rows; `anycopy.hints.mode: "compact"` replaces them with one fixed status/help row so selection and copy feedback do not resize the panes
 - `?` opens compact key help; inside it, `S` toggles exact `anycopy.*` setting paths and `U` toggles unavailable actions with their dependency
 - `Tab` cycles through balanced, tree-focused, and preview-focused layouts; both panes remain visible according to configurable ratios
-- Range mode selects when its anchor is unselected and deselects when its anchor is already selected. Normal tree movement extends or shrinks the inclusive range while preserving selections outside it
+- Range mode defaults to `toggle`, which reverses each node against its state when the range started. Set `anycopy.selection.rangeMode` to `select` for classic additive range selection. Normal tree movement extends or shrinks the inclusive range while restoring nodes that leave it
 - Changing the visible tree through search, filtering, or folding finishes the active range while keeping nodes already selected
 - `Enter` navigates the focused node in command-opened overlays; when shortcut-opened navigation is unavailable, it copies the focused node without requiring selection; `anycopy.selection.enterCopyMode` can copy marked results, with or without matching tool calls
 - After `Enter`, `/anycopy` offers the same summary choices as `/tree`: `No summary`, `Summarize`, and `Summarize with custom prompt`
@@ -122,7 +122,8 @@ Add an `anycopy` section to the normal global Pi settings file at `~/.pi/agent/s
     },
     "selection": {
       "enterCopyMode": "off",
-      "clearAfterCopy": "never"
+      "clearAfterCopy": "never",
+      "rangeMode": "toggle"
     },
     "copy": {
       "enableToolCallCopy": false,
@@ -167,6 +168,7 @@ Add an `anycopy` section to the normal global Pi settings file at `~/.pi/agent/s
 - `anycopy.layout.*TreeRatio`: fraction of free pane rows assigned to the tree in each layout; values must be greater than `0` and less than `1`, and the remaining rows go to preview
 - `anycopy.selection.enterCopyMode`: controls `Enter` while nodes are marked: `off` navigates normally, `output` copies only results, and `output-with-tool-call` copies matching calls with their results
 - `anycopy.selection.clearAfterCopy`: selection cleanup policy: `never`, `always`, `multi-select`, or `multi-select-enter`
+- `anycopy.selection.rangeMode`: `toggle` reverses each node in the active range against its initial state. `select` provides classic additive range selection
 - `anycopy.copy.enableToolCallCopy`: when `true`, adds the configurable `copyWithToolCall` action and hint; copied pairs use separate `toolCall:` and `toolResult:` sections, while normal copies remain output-only
 - `anycopy.copy.enableBlockCopy`: when `true`, registers `keys.copyBlock` globally for the latest assistant response and enables the same action for the focused `/anycopy` node; when `false`, no global block-copy shortcut is registered
 - `anycopy.copy.blockPicker.autoClose`: `never` keeps the picker open while marking, `under-three` closes after marking when the unfiltered copy-target count is below three, and `always` closes after every new mark

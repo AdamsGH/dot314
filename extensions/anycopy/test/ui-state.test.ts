@@ -97,6 +97,22 @@ test("applyInclusiveRangeSelection removes the range when its anchor was already
 	);
 });
 
+test("applyInclusiveRangeSelection reverses each mixed selection independently", () => {
+	const baseline = new Set(["outside", "a", "c"]);
+	assert.deepEqual(
+		[...applyInclusiveRangeSelection(baseline, ["a", "b", "c", "d"], "a", "d")],
+		["outside", "b", "d"],
+	);
+});
+
+test("applyInclusiveRangeSelection retains classic additive selection mode", () => {
+	const baseline = new Set(["outside", "a", "c"]);
+	assert.deepEqual(
+		[...applyInclusiveRangeSelection(baseline, ["a", "b", "c", "d"], "a", "d", "select")],
+		["outside", "a", "c", "b", "d"],
+	);
+});
+
 test("applyInclusiveRangeSelection leaves the baseline unchanged when the range is not visible", () => {
 	assert.deepEqual([...applyInclusiveRangeSelection(new Set(["saved"]), ["a", "b"], "hidden", "b")], ["saved"]);
 });

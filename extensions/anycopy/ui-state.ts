@@ -3,6 +3,7 @@ export type CopyTrigger = "shortcut" | "enter";
 export type EnterCopyMode = "off" | "output" | "output-with-tool-call";
 export type EnterAction = "navigate" | "copy-selection" | "copy-focused";
 export type HintMode = "full" | "compact";
+export type RangeSelectionMode = "toggle" | "select";
 export type ClearSelectionAfterCopy = "never" | "always" | "always-enter" | "multi-select" | "multi-select-enter";
 
 export function resolveEnterAction(
@@ -73,19 +74,19 @@ export function applyInclusiveRangeSelection(
 	orderedVisibleIds: readonly string[],
 	anchorId: string,
 	focusedId: string,
+	mode: RangeSelectionMode = "toggle",
 ): Set<string> {
 	const selected = new Set(baselineIds);
 	const anchorIndex = orderedVisibleIds.indexOf(anchorId);
 	const focusedIndex = orderedVisibleIds.indexOf(focusedId);
 	if (anchorIndex < 0 || focusedIndex < 0) return selected;
 
-	const shouldSelect = !baselineIds.has(anchorId);
 	const start = Math.min(anchorIndex, focusedIndex);
 	const end = Math.max(anchorIndex, focusedIndex);
 	for (let index = start; index <= end; index += 1) {
 		const id = orderedVisibleIds[index];
 		if (!id) continue;
-		if (shouldSelect) selected.add(id);
+		if (mode === "select" || !baselineIds.has(id)) selected.add(id);
 		else selected.delete(id);
 	}
 	return selected;
