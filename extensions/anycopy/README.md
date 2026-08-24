@@ -90,12 +90,14 @@ Add an `anycopy` section to the normal global Pi settings file at `~/.pi/agent/s
     },
     "selection": {
       "enterCopyMode": "off",
+      "debugToolEnvelopes": false,
       "clearAfterCopy": "never",
       "rangeMode": "toggle"
     },
     "copy": {
       "enableToolCallCopy": false,
       "enableBlockCopy": false,
+      "largePayloadOsc52MaxBytes": 1048576,
       "blockPicker": {
         "autoClose": "under-three"
       }
@@ -134,11 +136,13 @@ Add an `anycopy` section to the normal global Pi settings file at `~/.pi/agent/s
 - `anycopy.shortcut`: optional global shortcut registered through Pi's extension shortcut API; `null` disables it
 - `anycopy.layout.enabled`: enables the three-state `Tab` cycle; when `false`, the balanced layout remains fixed and `/anycopy` does not claim the configured layout key
 - `anycopy.layout.*TreeRatio`: fraction of free pane rows assigned to the tree in each layout; values must be greater than `0` and less than `1`, and the remaining rows go to preview
-- `anycopy.selection.enterCopyMode`: controls `Enter` while nodes are marked: `off` navigates normally, `output` copies only results, and `output-with-tool-call` copies matching calls with their results
+- `anycopy.selection.enterCopyMode`: controls `Enter` while nodes are marked: `off` navigates normally, `output` copies rendered result text, and `output-with-tool-call` copies the call name, arguments, readable result content, and error state
+- `anycopy.selection.debugToolEnvelopes`: includes raw persisted result details and internal tool metadata in tool-call-inclusive copies when `true`. The default is `false`
 - `anycopy.selection.clearAfterCopy`: selection cleanup policy: `never` keeps every selection, `always` clears after any copy, `always-enter` clears any non-empty selection copied with `Enter`, `multi-select` clears only copies containing multiple nodes, and `multi-select-enter` applies that multiple-node cleanup only to `Enter`
 - `anycopy.selection.rangeMode`: `toggle` reverses each node in the active range against its initial state. `select` provides classic additive range selection
-- `anycopy.copy.enableToolCallCopy`: when `true`, adds the configurable `copyWithToolCall` action and hint; copied pairs use separate `toolCall:` and `toolResult:` sections, while normal copies remain output-only
+- `anycopy.copy.enableToolCallCopy`: when `true`, adds the configurable `copyWithToolCall` action and hint; copied pairs contain the call name, arguments, and readable result in separate `toolCall:` and `toolResult:` sections, while normal copies remain output-only
 - `anycopy.copy.enableBlockCopy`: when `true`, registers `keys.copyBlock` globally for the latest assistant response and enables the same action for the focused `/anycopy` node; the global picker includes an `Entire message` target, and valid `json` fences expose expandable nested values; when `false`, no global block-copy shortcut is registered
+- `anycopy.copy.largePayloadOsc52MaxBytes`: maximum raw payload size for the remote OSC 52 fallback after Pi rejects a clipboard write. The default is 1 MiB. Set it to `0` to retain Pi's native limit and disable the fallback
 - `anycopy.copy.blockPicker.autoClose`: `never` keeps the picker open while marking, `under-three` closes after marking when the unfiltered copy-target count is below three, and `always` closes after every new mark
 - `anycopy.hints.mode`: `full` shows wrapped inline bindings; `compact` reserves one row for stable status and the configured help key
 - `anycopy.preview.toolCallContext`: opt-in initial state for generic tool-call context in preview; it is `false` by default and can be toggled at runtime with `keys.toggleToolCallContext`

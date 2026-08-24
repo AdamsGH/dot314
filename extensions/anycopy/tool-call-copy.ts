@@ -75,14 +75,45 @@ const compactJson = (value: unknown): string => {
 export const formatToolCallInvocation = (invocation: ToolCallInvocation): string =>
 	`[${invocation.name}: ${compactJson(invocation.arguments)}]`;
 
+const formatToolResultContent = (content: unknown): string => {
+	if (typeof content === "string") return content;
+	if (Array.isArray(content)) {
+		if (content.length === 0) return "[]";
+		const textBlocks = content.filter(
+			(block): block is { type: "text"; text: string } =>
+				typeof block === "object" &&
+				block !== null &&
+				(block as { type?: unknown }).type === "text" &&
+				typeof (block as { text?: unknown }).text === "string",
+		);
+		if (textBlocks.length === content.length) return textBlocks.map((block) => block.text).join("");
+	}
+	return JSON.stringify(content ?? [], null, 2);
+};
+
 export const formatToolCallResultForClipboard = (
 	entry: SessionEntry,
-	resultContent: string,
 	nodeById: ReadonlyMap<string, SessionTreeNodeLike>,
 	enabled: boolean,
+	debugEnvelope = false,
 ): string | null => {
-	if (!enabled) return null;
+	if (!enabled || entry.type !== "message") return null;
 	const invocation = resolveToolCallFromParents(entry, nodeById);
 	if (!invocation) return null;
-	return `toolCall:\n\n${formatToolCallInvocation(invocation)}\n\ntoolResult:\n\n${resultContent}`;
+
+	const message = entry.message as {
+		content?: unknown;
+		details?: unknown;
+		isError?: boolean;
+	};
+	const result = {
+		content: message.content ?? [],
+		...(message.details === undefined ? {} : { details: message.details }),
+		isError: message.isError === true,
+	};
+	const formattedResult = debugEnvelope
+		? JSON.stringify(result, null, 2)
+		: formatToolResultContent(message.content);
+	const resultLabel = !debugEnvelope && message.isError === true ? "toolResult (error)" : "toolResult";
+	return `toolCall:\n\n${JSON.stringify(invocation, null, 2)}\n\n${resultLabel}:\n\n${formattedResult}`;
 };

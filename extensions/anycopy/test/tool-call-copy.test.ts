@@ -67,9 +67,97 @@ test("formatToolCallResultForClipboard separates enabled matched calls and resul
 		message: { role: "toolResult", toolCallId: "call-a", toolName: "read", content: [] },
 	});
 
-	assert.equal(formatToolCallResultForClipboard(result, "file body", nodes, false), null);
+	assert.equal(formatToolCallResultForClipboard(result, nodes, false), null);
 	assert.equal(
-		formatToolCallResultForClipboard(result, "file body", nodes, true),
-		'toolCall:\n\n[read: {"path":"a.ts"}]\n\ntoolResult:\n\nfile body',
+		formatToolCallResultForClipboard(result, nodes, true),
+		`toolCall:
+
+{
+  "name": "read",
+  "arguments": {
+    "path": "a.ts"
+  }
+}
+
+toolResult:
+
+[]`,
+	);
+});
+
+test("formatToolCallResultForClipboard copies readable result content without internal details", () => {
+	const result = entry({
+		type: "message",
+		id: "result",
+		parentId: "assistant",
+		message: {
+			role: "toolResult",
+			toolCallId: "call-a",
+			toolName: "read",
+			content: [{ type: "text", text: "preview only" }],
+			details: { path: "a.ts", content: "complete file body" },
+			isError: false,
+		},
+	});
+
+	assert.equal(
+		formatToolCallResultForClipboard(result, nodes, true),
+		`toolCall:
+
+{
+  "name": "read",
+  "arguments": {
+    "path": "a.ts"
+  }
+}
+
+toolResult:
+
+preview only`,
+	);
+});
+
+test("formatToolCallResultForClipboard includes the persisted envelope only in debug mode", () => {
+	const result = entry({
+		type: "message",
+		id: "result",
+		parentId: "assistant",
+		message: {
+			role: "toolResult",
+			toolCallId: "call-a",
+			toolName: "read",
+			content: [{ type: "text", text: "readable result" }],
+			details: { snapshots: ["internal frame"] },
+			isError: true,
+		},
+	});
+
+	assert.equal(
+		formatToolCallResultForClipboard(result, nodes, true, true),
+		`toolCall:
+
+{
+  "name": "read",
+  "arguments": {
+    "path": "a.ts"
+  }
+}
+
+toolResult:
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "readable result"
+    }
+  ],
+  "details": {
+    "snapshots": [
+      "internal frame"
+    ]
+  },
+  "isError": true
+}`,
 	);
 });

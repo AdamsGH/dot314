@@ -8,11 +8,13 @@
     "toolCallContext": false
   },
   "selection": {
-    "rangeMode": "toggle"
+    "rangeMode": "toggle",
+    "debugToolEnvelopes": false
   },
   "copy": {
     "enableToolCallCopy": false,
     "enableBlockCopy": false,
+    "largePayloadOsc52MaxBytes": 1048576,
     "blockPicker": {
       "autoClose": "under-three"
     }

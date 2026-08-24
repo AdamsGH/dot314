@@ -33,6 +33,8 @@
 - Generic tool-call context can be explicitly enabled for preview without relying on tool names or tool-specific argument schemas
 
 ### Fixed
+- Remote clipboard writes now retry through a bounded OSC 52 path when a complete tool envelope exceeds Pi's native clipboard payload limit
+- Tool-call-inclusive copy now includes call arguments and readable result content without dumping internal tool metadata. Raw persisted envelopes remain available through `selection.debugToolEnvelopes`
 - Returning from the block picker's external editor no longer waits on a manual alternate-screen redraw path
 - Generated truncation ellipses in key-help and block-picker panes use the muted frame color instead of inheriting selected-row or syntax-highlight colors
 - Block preview overflow indicators are embedded in the viewport borders without truncation artifacts or border-color bleed; they appear only where content is hidden and do not consume content rows
